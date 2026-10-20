@@ -20,15 +20,17 @@ This skill changes how file content is retrieved. It does not change the source 
 ## Core Rules
 
 1. Prefer jsDelivr for eligible public GitHub file-content requests.
-2. Preserve the repository owner, repository name, ref, and file path exactly.
-3. Prefer immutable commit SHAs or release tags when available. Otherwise, use the known branch name.
+2. Preserve the repository owner, repository name, explicitly specified ref, and file path exactly.
+3. If no ref is specified, use a ref established by the repository context. Prefer a full commit SHA when one is known and appropriate; do not select a tag or replace a branch without a basis in the request or context. Tags can be moved and are not inherently immutable.
 4. Never guess an unknown branch name, tag, commit SHA, or file path.
 5. Do not redirect GitHub API endpoints, issues, pull requests, commit pages, repository listings, or other interactive pages to jsDelivr.
-6. Do not treat a successful HTTP response as proof that the returned content is complete or correct. Check the response and verify the expected content.
+6. Do not treat a successful HTTP response as proof that the returned content is complete or correct. Check the response and verify the expected content using the criteria in the retrieval workflow.
 7. If the CDN request fails or returns unexpected content, fall back to the original GitHub source or an appropriate GitHub API endpoint.
 8. Do not claim that a CDN request succeeded unless the retrieval tool confirms success.
 
 ## URL Conversion
+
+Convert only the supported file URL forms documented below: GitHub `blob` URLs and `raw.githubusercontent.com` URLs. Do not automatically convert other forms, such as GitHub `tree` URLs, release download links, or Gist URLs. If another URL redirects to a supported file URL, convert it only after the final owner, repository, ref, and file path are known unambiguously. Otherwise, use the original URL or an appropriate GitHub tool.
 
 ### 1. GitHub blob URLs
 
@@ -159,7 +161,10 @@ When a GitHub file needs to be read:
 4. For an eligible request, identify the owner, repository, ref, and file path.
 5. Construct the corresponding jsDelivr URL.
 6. Fetch the CDN URL using the available browsing, HTTP, or file-retrieval tool.
-7. Verify that the response contains the expected file content.
+7. Verify the response before relying on it:
+	- For text files, confirm that the response is the expected file content, not an error page or unrelated HTML.
+	- For binary files, check the content type or file signature when the retrieval tool exposes it.
+	- If the tool reports truncation or does not expose enough content to verify the file, state that completeness could not be confirmed.
 8. If the CDN request fails, returns an error page, or appears incomplete, try the original GitHub raw-content URL when available.
 9. If direct retrieval still fails, use an appropriate GitHub API or repository-access tool.
 10. If all available methods fail, report the limitation honestly. Do not fabricate file contents.
